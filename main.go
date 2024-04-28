@@ -1,59 +1,77 @@
 package main
 
 import (
-	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {
-
-	// DB Create
-	dbPath := os.Getenv("TODO_DBFILE")
-	if dbPath == "" {
-		dbPath = "./scheduler.db"
-
-		log.Println("<dbPath> has been redefined")
+func NextDate(now time.Time, date string, repeat string) (string, error) {
+	if repeat == "" {
+		return "", errors.New("<repeat> is empty")
 	}
 
-	if _, err := os.Stat(dbPath); err != nil {
-		if _, err := os.Create(dbPath); err != nil {
-			log.Fatal(err)
+	nextDate, err := time.Parse("20060102", date)
+	if err != nil {
+		return "", fmt.Errorf("invalid <date> format: %w", err)
+	}
+
+	repeatParts := strings.Split(repeat, " ")
+	switch repeatParts[0] {
+	case "d":
+		if len(repeatParts) != 2 {
+			return "", errors.New("invalid <repeat> format")
 		}
-		log.Println("database has been created")
+		days, err := strconv.Atoi(repeatParts[1])
+		if err != nil || days >= 400 {
+			return "", errors.New("invalid <repeat> format")
+		}
+		nextDate = nextDate.AddDate(0, 0, days)
+		for nextDate.Before(now) || nextDate.Equal(now) {
+			nextDate = nextDate.AddDate(0, 0, days)
+		}
+	case "y":
+		nextDate = nextDate.AddDate(1, 0, 0)
+		for nextDate.Before(now) || nextDate.Equal(now) {
+			nextDate = nextDate.AddDate(1, 0, 0)
+		}
+	default:
+		return "", errors.New("invalid <repeat> format")
 	}
+	return nextDate.Format("20060102"), nil
+}
 
-	// Table create
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+func main() {
+	// DB Init
+	// TODO: Обработка ошибок
+	// TODO: Не читается .env
+	InitDB(os.Getenv("TODO_DBFILE"))
+	TableCreate(os.Getenv("TODO_DBFILE"))
 
-	_, err = db.Exec(`
-	CREATE TABLE IF NOT EXISTS scheduler (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		date VARCHAR(8) NOT NULL,
-		title TEXT NOT NULL,
-		comment TEXT,
-		repeat VARCHAR(128)
-	);
-	CREATE INDEX IF NOT EXISTS scheduler_date ON scheduler(date);`)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Main handler
-	http.Handle("/", http.FileServer(http.Dir("./web")))
+	// Set port
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
-		port = "7540"
-		log.Println("<port> has been redefined")
+		if err := os.Setenv("TODO_PORT", "7540"); err != nil {
+			log.Fatal("error when trying to set port", err)
+		}
+		port = os.Getenv("TODO_PORT")
+		log.Println("<TODO_PORT> has been redefined")
 	}
+
+	// Handlers
+	http.Handle("/", http.FileServer(http.Dir("./web")))
+	http.HandleFunc("/api/nextdate", NextDateHandler)
+
+	// Run
+	log.Printf("Server is starting on port %s\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal("ListenAndServe error: ", err)
 	}
 }
