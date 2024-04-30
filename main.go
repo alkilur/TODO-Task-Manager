@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -49,17 +50,25 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 }
 
 func main() {
+
+	// .env load
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("error when trying to load .env: ", err)
+	}
+
 	// DB Init
-	// TODO: Обработка ошибок
-	// TODO: Не читается .env
-	InitDB(os.Getenv("TODO_DBFILE"))
-	TableCreate(os.Getenv("TODO_DBFILE"))
+	if err := InitDB(); err != nil {
+		log.Fatal(err)
+	}
+	if err := TableCreate(); err != nil {
+		log.Fatal(err)
+	}
 
 	// Set port
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
 		if err := os.Setenv("TODO_PORT", "7540"); err != nil {
-			log.Fatal("error when trying to set port", err)
+			log.Fatal("error when trying to set port: ", err)
 		}
 		port = os.Getenv("TODO_PORT")
 		log.Println("<TODO_PORT> has been redefined")
@@ -68,6 +77,7 @@ func main() {
 	// Handlers
 	http.Handle("/", http.FileServer(http.Dir("./web")))
 	http.HandleFunc("/api/nextdate", NextDateHandler)
+	http.HandleFunc("/api/task", TaskHandler)
 
 	// Run
 	log.Printf("Server is starting on port %s\n", port)

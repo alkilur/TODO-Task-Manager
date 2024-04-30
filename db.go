@@ -7,27 +7,28 @@ import (
 	"os"
 )
 
-func InitDB(dbPath string) error {
+func InitDB() error {
+	dbPath := os.Getenv("TODO_DBFILE")
 	if dbPath == "" {
 		if err := os.Setenv("TODO_DBFILE", "./scheduler.db"); err != nil {
-			return fmt.Errorf("error when trying to initialize db: %w", err)
+			return fmt.Errorf("error when trying to initialize db: %v", err)
 		}
 		log.Println("<TODO_DBFILE> has been redefined")
 	}
 
 	if _, err := os.Stat(dbPath); err != nil {
 		if _, err := os.Create(dbPath); err != nil {
-			return fmt.Errorf("error when trying to initialize db: %w", err)
+			return fmt.Errorf("error when trying to initialize db: %v", err)
 		}
 		log.Println("database has been created")
 	}
 	return nil
 }
 
-func TableCreate(dbPath string) error {
-	db, err := sql.Open("sqlite3", dbPath)
+func TableCreate() error {
+	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
 	if err != nil {
-		return fmt.Errorf("error when trying to table create: %w", err)
+		return fmt.Errorf("error when trying to open db: %v", err)
 	}
 	defer db.Close()
 
@@ -40,12 +41,12 @@ func TableCreate(dbPath string) error {
 			repeat VARCHAR(128)
 	);`)
 	if err != nil {
-		return fmt.Errorf("error when trying to table create: %w", err)
+		return fmt.Errorf("error when trying to table create: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS scheduler_date ON scheduler(date);`)
 	if err != nil {
-		return fmt.Errorf("error when trying to table create: %w", err)
+		return fmt.Errorf("error when trying to table create: %v", err)
 	}
 	return nil
 }
