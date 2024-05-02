@@ -39,6 +39,36 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 
 func TaskHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+
+	case http.MethodGet:
+		id := r.FormValue("id")
+		if id == "" {
+			http.Error(w, `{"error":"id field is empty"}`, http.StatusBadRequest)
+			return
+		}
+
+		db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+		if err != nil {
+			http.Error(w, `{"error":"Error when trying to get task"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to open db: %v", err)
+			return
+		}
+		defer db.Close()
+
+		task := Task{}
+		row := db.QueryRow(`SELECT * FROM scheduler WHERE id = ?`, id)
+		if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+			http.Error(w, `{"error":"Error when trying to get task"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to row.Scan(): %v", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		if err = json.NewEncoder(w).Encode(task); err != nil {
+			http.Error(w, `{"error":"Error when trying to send response"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to send response: %v", err)
+		}
+
 	case http.MethodPost:
 		task := Task{}
 		if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
@@ -62,14 +92,12 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if task.Repeat != "" {
-			if task.Repeat == "d 1" {
-				task.Date = time.Now().Format("20060102")
-			} else {
-				nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
-				if err != nil {
-					http.Error(w, `{"error":"Invalid repeat format"}`, http.StatusBadRequest)
-					return
-				}
+			nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
+			if err != nil {
+				http.Error(w, `{"error":"Invalid repeat format"}`, http.StatusBadRequest)
+				return
+			}
+			if task.Date < time.Now().Format("20060102") {
 				task.Date = nextDate
 			}
 		}
@@ -103,7 +131,113 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("error when trying to send response: %v", err)
 		}
 
+	case http.MethodPut:
+		task := Task{}
+		if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+			http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+
+		if task.ID == "" {
+			http.Error(w, `{"error":"ID is empty"}`, http.StatusBadRequest)
+			return
+		}
+
+		if task.Title == "" {
+			http.Error(w, `{"error":"Title is empty"}`, http.StatusBadRequest)
+			return
+		}
+
+		if task.Date != "" {
+			if _, err := time.Parse("20060102", task.Date); err != nil {
+				http.Error(w, `{"error":"Invalid date format"}`, http.StatusBadRequest)
+				return
+			}
+		}
+		if task.Date == "" || task.Date < time.Now().Format("20060102") {
+			task.Date = time.Now().Format("20060102")
+		}
+
+		if task.Repeat != "" {
+			nextDate, err := NextDate(time.Now(), task.Date, task.Repeat)
+			if err != nil {
+				http.Error(w, `{"error":"Invalid repeat format"}`, http.StatusBadRequest)
+				return
+			}
+			if task.Date < time.Now().Format("20060102") {
+				task.Date = nextDate
+			}
+		}
+
+		db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+		if err != nil {
+			http.Error(w, `{"error":"Error when trying to update task"}`, http.StatusBadRequest)
+			log.Printf("error when trying to open db: %v", err)
+			return
+		}
+		defer db.Close()
+
+		res, err := db.Exec(`UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`,
+			task.Date, task.Title, task.Comment, task.Repeat, task.ID)
+		if err != nil {
+			http.Error(w, `{"error":"Error when trying to update task"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to update task: %v", err)
+			return
+		}
+
+		affectedRows, err := res.RowsAffected()
+		if affectedRows == 0 || err != nil {
+			http.Error(w, `{"error":"Invalid task id"}`, http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		if err = json.NewEncoder(w).Encode(map[string]string{}); err != nil {
+			http.Error(w, `{"error":"Error when trying to send response"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to send response: %v", err)
+		}
+
 	default:
 		http.Error(w, "Invalid HTTP method", http.StatusMethodNotAllowed)
+	}
+}
+
+func TasksHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
+	if err != nil {
+		http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+		log.Printf("error when trying to open db: %v", err)
+		return
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT * FROM scheduler ORDER BY date LIMIT 50`)
+	if err != nil {
+		http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+		log.Printf("error when trying to select task: %v", err)
+		return
+	}
+
+	tasks := make([]Task, 0)
+	for rows.Next() {
+		task := Task{}
+		if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+			http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to rows.Scan(): %v", err)
+			return
+		}
+		tasks = append(tasks, task)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+		log.Printf("error in rows.Err(): %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err = json.NewEncoder(w).Encode(map[string][]Task{"tasks": tasks}); err != nil {
+		http.Error(w, `{"error":"Error when trying to send response"}`, http.StatusInternalServerError)
+		log.Printf("error when trying to send response: %v", err)
 	}
 }

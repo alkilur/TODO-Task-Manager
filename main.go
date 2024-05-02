@@ -78,6 +78,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("./web")))
 	http.HandleFunc("/api/nextdate", NextDateHandler)
 	http.HandleFunc("/api/task", TaskHandler)
+	http.HandleFunc("/api/tasks", TasksHandler)
 
 	// Run
 	log.Printf("Server is starting on port %s\n", port)
