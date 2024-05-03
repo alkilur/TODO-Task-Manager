@@ -79,6 +79,7 @@ func main() {
 	http.HandleFunc("/api/nextdate", NextDateHandler)
 	http.HandleFunc("/api/task", TaskHandler)
 	http.HandleFunc("/api/tasks", TasksHandler)
+	http.HandleFunc("/api/task/done", TaskDoneHandler)
 
 	// Run
 	log.Printf("Server is starting on port %s\n", port)
