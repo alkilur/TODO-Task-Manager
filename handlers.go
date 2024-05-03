@@ -236,6 +236,11 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TasksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"Invalid HTTP method"}`, http.StatusBadRequest)
+		return
+	}
+
 	db, err := sql.Open("sqlite3", os.Getenv("TODO_DBFILE"))
 	if err != nil {
 		http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
@@ -244,11 +249,25 @@ func TasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT * FROM scheduler ORDER BY date LIMIT 50`)
-	if err != nil {
-		http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
-		log.Printf("error when trying to select task: %v", err)
-		return
+	var rows *sql.Rows
+
+	searchValue := r.FormValue("search")
+	date, err := time.Parse("02.01.2006", searchValue)
+	if err == nil {
+		rows, err = db.Query(`SELECT * FROM scheduler WHERE date = ? LIMIT 50`, date.Format("20060102"))
+		if err != nil {
+			http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to select tasks: %v", err)
+			return
+		}
+	} else {
+		rows, err = db.Query(`SELECT * FROM scheduler WHERE title LIKE $searchValue OR comment LIKE $searchValue ORDER BY date LIMIT 50`,
+			sql.Named("searchValue", "%"+searchValue+"%"))
+		if err != nil {
+			http.Error(w, `{"error":"Error when trying to get tasks"}`, http.StatusInternalServerError)
+			log.Printf("error when trying to select tasks: %v", err)
+			return
+		}
 	}
 
 	tasks := make([]Task, 0)
