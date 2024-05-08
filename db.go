@@ -48,5 +48,6 @@ func TableCreate() error {
 	if err != nil {
 		return fmt.Errorf("error when trying to table create: %v", err)
 	}
+	log.Println("table has been created")
 	return nil
 }

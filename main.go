@@ -51,9 +51,9 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 func main() {
 
-	// .env load
+	// .env load for local developing
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("error when trying to load .env: ", err)
+		log.Println(err)
 	}
 
 	// DB Init
