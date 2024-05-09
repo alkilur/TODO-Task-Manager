@@ -10,29 +10,21 @@ import (
 	"time"
 )
 
-// func responseWithError(w http.ResponseWriter, err error) {
-// 	log.Printf("response with error: %v", err)
-// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-// 	if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": err.Error()}); encodeErr != nil {
-// 		http.Error(w, "Error when trying to send error response", http.StatusInternalServerError)
-// 		log.Printf("error when trying to send error response: %v", encodeErr)
-// 	}
-// }
-
 func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	now, err := time.Parse("20060102", r.FormValue("now"))
 	if err != nil {
-		http.Error(w, "Invalid <now> format", http.StatusBadRequest)
+		http.Error(w, `{"error":"invalid <now> format"}`, http.StatusBadRequest)
 		log.Printf("invalid <now> format: %v", err)
 		return
 	}
 	nextDate, err := NextDate(now, r.FormValue("date"), r.FormValue("repeat"))
 	if err != nil {
-		http.Error(w, "Invalid parameters", http.StatusBadRequest)
+		http.Error(w, `{"error":"invalid parameters"}`, http.StatusBadRequest)
 		log.Printf("NextDate func error: %v", err)
 		return
 	}
 	if _, err := w.Write([]byte(nextDate)); err != nil {
+		http.Error(w, `{"error":"Error when trying to send response"}`, http.StatusInternalServerError)
 		log.Printf("error when trying to send response: %v", err)
 	}
 }
@@ -231,7 +223,7 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		http.Error(w, "Invalid HTTP method", http.StatusMethodNotAllowed)
+		http.Error(w, `{"error":"Error when trying to send response"}`, http.StatusMethodNotAllowed)
 	}
 }
 

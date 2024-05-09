@@ -51,7 +51,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 func main() {
 
-	// .env load for local developing
+	// .env load
 	if err := godotenv.Load(); err != nil {
 		log.Println(err)
 	}

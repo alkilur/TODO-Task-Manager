@@ -13,6 +13,7 @@ func InitDB() error {
 		if err := os.Setenv("TODO_DBFILE", "./scheduler.db"); err != nil {
 			return fmt.Errorf("error when trying to initialize db: %v", err)
 		}
+		dbPath = os.Getenv("TODO_DBFILE")
 		log.Println("<TODO_DBFILE> has been redefined")
 	}
 
@@ -48,6 +49,5 @@ func TableCreate() error {
 	if err != nil {
 		return fmt.Errorf("error when trying to table create: %v", err)
 	}
-	log.Println("table has been created")
 	return nil
 }
