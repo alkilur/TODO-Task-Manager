@@ -8,7 +8,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-const configPath string = "../cfg.yaml"
+const configPath string = "./cfg.yaml"
 
 type Config struct {
 	DBPath     string `yaml:"db_path" env-required:"true"`

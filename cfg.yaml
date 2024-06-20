@@ -1,7 +1,7 @@
 
-db_path: "../scheduler.db"
+db_path: "./scheduler.db"
 
 http_server:
   address: "localhost:7540"
-  timeoit: 4s
+  timeout: 4s
   idle_timeout: 60s
