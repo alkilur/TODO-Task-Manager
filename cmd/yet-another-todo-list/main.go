@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"yet-another-todo-list/internal/http-server"
 	"yet-another-todo-list/internal/lib/slwrap"
 	"yet-another-todo-list/internal/storage/sqlite"
 
@@ -39,7 +40,10 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+
+	controller := http_server.New()
 	router.Handle("/*", http.FileServer(http.Dir("./web")))
+	router.Get("/api/nextdate", controller.GetNextDate(log))
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Address))
@@ -50,7 +54,7 @@ func main() {
 		WriteTimeout: cfg.HTTPServer.Timeout,
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
-	if err := srv.ListenAndServe(); err != nil {
+	if err = srv.ListenAndServe(); err != nil {
 		log.Error("failed to start server", err)
 	}
 	log.Error("server stopped")
