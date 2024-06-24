@@ -8,13 +8,23 @@ import (
 	"time"
 )
 
+const TimeLayout string = "20060102"
+
+type Task struct {
+	ID      string `json:"id" db:"id"`
+	Date    string `json:"date" db:"date"`
+	Title   string `json:"title" db:"title"`
+	Comment string `json:"comment" db:"comment"`
+	Repeat  string `json:"repeat" db:"repeat"`
+}
+
 func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 	if repeat == "" {
 		return "", errors.New("'repeat' is empty")
 	}
 
-	nextDate, err := time.Parse("20060102", date)
+	nextDate, err := time.Parse(TimeLayout, date)
 	if err != nil {
 		return "", fmt.Errorf("invalid 'date' format: %w", err)
 	}
@@ -42,5 +52,5 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return "", fmt.Errorf("invalid 'repeat' format: %w", err)
 	}
 
-	return nextDate.Format("20060102"), nil
+	return nextDate.Format(TimeLayout), nil
 }

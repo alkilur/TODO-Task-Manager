@@ -5,12 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"yet-another-todo-list/internal/http-server"
-	"yet-another-todo-list/internal/lib/slwrap"
-	"yet-another-todo-list/internal/storage/sqlite"
 
 	"yet-another-todo-list/internal/config"
+	"yet-another-todo-list/internal/http-server"
 	"yet-another-todo-list/internal/lib/slogpretty"
+	"yet-another-todo-list/internal/lib/slwrap"
+	"yet-another-todo-list/internal/storage/sqlite"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -33,7 +33,6 @@ func main() {
 		log.Error("failed to init storage", slwrap.Wrap(err))
 		os.Exit(1)
 	}
-	_ = db
 
 	// init router
 	router := chi.NewRouter()
@@ -44,6 +43,7 @@ func main() {
 	controller := http_server.New()
 	router.Handle("/*", http.FileServer(http.Dir("./web")))
 	router.Get("/api/nextdate", controller.GetNextDate(log))
+	router.Post("/api/task", controller.AddTask(log, db))
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Address))

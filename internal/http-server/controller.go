@@ -1,15 +1,17 @@
 package http_server
 
 import (
-	"github.com/go-chi/render"
+	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/render"
 )
 
 type TaskController interface {
-	GetNextDate(now, date, repeat string) (string, error)
+	GetNextDate(log *slog.Logger)
+	AddTask(log *slog.Logger, taskCreator TaskCreator)
 	//GetTasks
 	//GetTaskByID
-	//TaskAdd
 	//TaskUpdate
 	//TaskDone
 	//TaskDelete
