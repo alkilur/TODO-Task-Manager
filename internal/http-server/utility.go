@@ -2,13 +2,26 @@ package http_server
 
 import (
 	"errors"
-	"fmt"
+	"github.com/go-chi/render"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const TimeLayout string = "20060102"
+
+var (
+	ErrInvalidNow       = errors.New("invalid 'now' format")
+	ErrUnmarshal        = errors.New("error unmarshalling request body")
+	ErrEmptyTitle       = errors.New("'title' cannot be empty")
+	ErrInvalidDate      = errors.New("invalid 'date' format")
+	ErrInvalidRepeat    = errors.New("invalid 'repeat' format")
+	ErrTaskNotFound     = errors.New("task not found")
+	ErrMethodNotAllowed = errors.New("invalid http method")
+	//ErrDateCalculation = errors.New("error in date calculation")
+	//ErrEmptyID         = errors.New("'id' cannot be empty")
+)
 
 type Task struct {
 	ID      string `json:"id" db:"id"`
@@ -18,26 +31,44 @@ type Task struct {
 	Repeat  string `json:"repeat" db:"repeat"`
 }
 
-func NextDate(now time.Time, date string, repeat string) (string, error) {
+func SendError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, ErrInvalidNow) ||
+		errors.Is(err, ErrInvalidRepeat) ||
+		errors.Is(err, ErrUnmarshal) ||
+		errors.Is(err, ErrEmptyTitle) ||
+		errors.Is(err, ErrInvalidDate):
+		w.WriteHeader(http.StatusBadRequest)
+	case errors.Is(err, ErrMethodNotAllowed):
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	case errors.Is(err, ErrTaskNotFound):
+		w.WriteHeader(http.StatusNotFound)
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
+	render.JSON(w, r, map[string]string{"error": err.Error()})
+}
+
+func NextDate(now time.Time, date string, repeat string) (string, error) {
 	if repeat == "" {
-		return "", errors.New("'repeat' is empty")
+		return "", ErrInvalidRepeat
 	}
 
 	nextDate, err := time.Parse(TimeLayout, date)
 	if err != nil {
-		return "", fmt.Errorf("invalid 'date' format: %w", err)
+		return "", ErrInvalidDate
 	}
 
 	repeatParts := strings.Split(repeat, " ")
 	switch repeatParts[0] {
 	case "d":
 		if len(repeatParts) != 2 {
-			return "", fmt.Errorf("invalid 'repeat' format: %w", err)
+			return "", ErrInvalidRepeat
 		}
 		days, err := strconv.Atoi(repeatParts[1])
 		if err != nil || days >= 400 {
-			return "", fmt.Errorf("invalid 'repeat' format: %w", err)
+			return "", ErrInvalidRepeat
 		}
 		nextDate = nextDate.AddDate(0, 0, days)
 		for nextDate.Before(now) || nextDate.Equal(now) {
@@ -49,7 +80,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			nextDate = nextDate.AddDate(1, 0, 0)
 		}
 	default:
-		return "", fmt.Errorf("invalid 'repeat' format: %w", err)
+		return "", ErrInvalidRepeat
 	}
 
 	return nextDate.Format(TimeLayout), nil

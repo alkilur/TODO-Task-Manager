@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"strconv"
+	"time"
 
 	srv "yet-another-todo-list/internal/http-server"
 
@@ -57,4 +58,43 @@ func (s *Storage) CreateTask(task *srv.Task) (string, error) {
 	}
 
 	return strconv.FormatInt(id, 10), nil
+}
+
+func (s *Storage) GetTasks(searchQuery string) ([]srv.Task, error) {
+	var rows *sql.Rows
+
+	date, err := time.Parse("02.01.2006", searchQuery)
+	if err == nil {
+		rows, err = s.db.Query(`
+			SELECT * FROM scheduler
+			WHERE date = ? LIMIT 50`,
+			date.Format(srv.TimeLayout))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rows, err = s.db.Query(`
+			SELECT * FROM scheduler
+			WHERE title LIKE $searchQuery OR comment LIKE $searchQuery
+			ORDER BY date LIMIT 50`,
+			sql.Named("searchQuery", "%"+searchQuery+"%"))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tasks := make([]srv.Task, 0)
+	for rows.Next() {
+		task := srv.Task{}
+		if err = rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }

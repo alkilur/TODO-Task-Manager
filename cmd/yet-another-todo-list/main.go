@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"yet-another-todo-list/internal/config"
-	"yet-another-todo-list/internal/http-server"
+	"yet-another-todo-list/internal/http-server/handlers"
 	"yet-another-todo-list/internal/lib/slogpretty"
 	"yet-another-todo-list/internal/lib/slwrap"
 	"yet-another-todo-list/internal/storage/sqlite"
@@ -40,10 +40,10 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	controller := http_server.New()
 	router.Handle("/*", http.FileServer(http.Dir("./web")))
-	router.Get("/api/nextdate", controller.GetNextDate(log))
-	router.Post("/api/task", controller.AddTask(log, db))
+	router.Get("/api/nextdate", handlers.GetNextDate(log))
+	router.Post("/api/task", handlers.AddTask(log, db))
+	router.Get("/api/tasks", handlers.GetTasks(log, db))
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Address))
