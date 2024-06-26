@@ -44,6 +44,7 @@ func main() {
 	router.Get("/api/nextdate", handlers.GetNextDate(log))
 	router.Post("/api/task", handlers.AddTask(log, db))
 	router.Get("/api/tasks", handlers.GetTasks(log, db))
+	router.Put("/api/task", handlers.UpdateTask(log, db))
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Address))

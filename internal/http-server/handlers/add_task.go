@@ -46,7 +46,7 @@ func AddTask(log *slog.Logger, taskCreator TaskCreator) http.HandlerFunc {
 		if task.Repeat != "" {
 			nextDate, err := srv.NextDate(time.Now(), task.Date, task.Repeat)
 			if err != nil {
-				srv.SendError(w, r, srv.ErrInvalidRepeat)
+				srv.SendError(w, r, err)
 				return
 			}
 			if task.Date < time.Now().Format(srv.TimeLayout) {

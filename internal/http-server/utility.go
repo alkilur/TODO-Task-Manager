@@ -17,10 +17,9 @@ var (
 	ErrEmptyTitle       = errors.New("'title' cannot be empty")
 	ErrInvalidDate      = errors.New("invalid 'date' format")
 	ErrInvalidRepeat    = errors.New("invalid 'repeat' format")
+	ErrInvalidID        = errors.New("invalid 'id' format")
 	ErrTaskNotFound     = errors.New("task not found")
 	ErrMethodNotAllowed = errors.New("invalid http method")
-	//ErrDateCalculation = errors.New("error in date calculation")
-	//ErrEmptyID         = errors.New("'id' cannot be empty")
 )
 
 type Task struct {
@@ -37,6 +36,7 @@ func SendError(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, ErrInvalidRepeat) ||
 		errors.Is(err, ErrUnmarshal) ||
 		errors.Is(err, ErrEmptyTitle) ||
+		errors.Is(err, ErrInvalidID) ||
 		errors.Is(err, ErrInvalidDate):
 		w.WriteHeader(http.StatusBadRequest)
 	case errors.Is(err, ErrMethodNotAllowed):
