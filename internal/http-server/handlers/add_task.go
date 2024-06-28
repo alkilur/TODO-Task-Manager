@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-	"yet-another-todo-list/internal/lib/slwrap"
 
 	srv "yet-another-todo-list/internal/http-server"
+	"yet-another-todo-list/internal/lib/slwrap"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"

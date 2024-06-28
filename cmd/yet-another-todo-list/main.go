@@ -44,6 +44,7 @@ func main() {
 	router.Get("/api/nextdate", handlers.GetNextDate(log))
 	router.Post("/api/task", handlers.AddTask(log, db))
 	router.Get("/api/tasks", handlers.GetTasks(log, db))
+	router.Get("/api/task", handlers.GetTask(log, db))
 	router.Put("/api/task", handlers.UpdateTask(log, db))
 	router.Post("/api/task/done", handlers.CompleteTask(log, db))
 

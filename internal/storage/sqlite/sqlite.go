@@ -99,6 +99,16 @@ func (s *Storage) GetTasks(searchQuery string) ([]srv.Task, error) {
 	return tasks, nil
 }
 
+func (s *Storage) GetTask(id string) (*srv.Task, error) {
+	task := &srv.Task{}
+	row := s.db.QueryRow(`SELECT * FROM scheduler WHERE id = ?`, id)
+	if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+		return nil, srv.ErrInvalidID
+	}
+
+	return task, nil
+}
+
 func (s *Storage) UpdateTask(task *srv.Task) error {
 	stmt, err := s.db.Prepare(`UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`)
 	if err != nil {

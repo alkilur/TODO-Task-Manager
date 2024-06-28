@@ -2,11 +2,12 @@ package http_server
 
 import (
 	"errors"
-	"github.com/go-chi/render"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-chi/render"
 )
 
 const TimeLayout string = "20060102"
