@@ -13,12 +13,12 @@ import (
 const TimeLayout string = "20060102"
 
 var (
-	ErrInvalidNow       = errors.New("invalid 'now' format")
 	ErrUnmarshal        = errors.New("error unmarshalling request body")
-	ErrEmptyTitle       = errors.New("'title' cannot be empty")
+	ErrInvalidNow       = errors.New("invalid 'now' format")
 	ErrInvalidDate      = errors.New("invalid 'date' format")
 	ErrInvalidRepeat    = errors.New("invalid 'repeat' format")
 	ErrInvalidID        = errors.New("invalid 'id' format")
+	ErrEmptyTitle       = errors.New("'title' cannot be empty")
 	ErrTaskNotFound     = errors.New("task not found")
 	ErrMethodNotAllowed = errors.New("invalid http method")
 )

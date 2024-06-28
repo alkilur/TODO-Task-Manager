@@ -14,7 +14,6 @@ import (
 func GetNextDate(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log = log.With(slog.String("request_id", middleware.GetReqID(r.Context())))
-		// TODO: log something?
 
 		now, err := time.Parse(srv.TimeLayout, r.FormValue("now"))
 		if err != nil {
