@@ -45,6 +45,7 @@ func main() {
 	router.Post("/api/task", handlers.AddTask(log, db))
 	router.Get("/api/tasks", handlers.GetTasks(log, db))
 	router.Put("/api/task", handlers.UpdateTask(log, db))
+	router.Post("/api/task/done", handlers.CompleteTask(log, db))
 
 	// run server
 	log.Info("starting server", slog.String("address", cfg.Address))

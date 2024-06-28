@@ -117,3 +117,37 @@ func (s *Storage) UpdateTask(task *srv.Task) error {
 
 	return nil
 }
+
+func (s *Storage) CompleteTask(id string) error {
+
+	task := srv.Task{}
+	row := s.db.QueryRow(`SELECT * FROM scheduler WHERE id = ?`, id)
+	if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
+		return err
+	}
+
+	if task.Repeat == "" {
+		res, err := s.db.Exec(`DELETE FROM scheduler WHERE id = ?`, id)
+		if err != nil {
+			return err
+		}
+		affectedRows, err := res.RowsAffected()
+		if affectedRows == 0 || err != nil {
+			return srv.ErrInvalidID
+		}
+	} else {
+		nextDate, err := srv.NextDate(time.Now(), task.Date, task.Repeat)
+		if err != nil {
+			return err
+		}
+		res, err := s.db.Exec(`UPDATE scheduler SET date = ? WHERE id = ?`, nextDate, id)
+		if err != nil {
+			return err
+		}
+		affectedRows, err := res.RowsAffected()
+		if affectedRows == 0 || err != nil {
+			return srv.ErrInvalidID
+		}
+	}
+	return nil
+}
