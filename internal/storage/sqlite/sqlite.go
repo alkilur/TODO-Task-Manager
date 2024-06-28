@@ -161,3 +161,23 @@ func (s *Storage) CompleteTask(id string) error {
 	}
 	return nil
 }
+
+func (s *Storage) DeleteTask(id string) error {
+
+	stmt, err := s.db.Prepare(`DELETE FROM scheduler WHERE id = ?`)
+	if err != nil {
+		return err
+	}
+
+	res, err := stmt.Exec(id)
+	if err != nil {
+		return err
+	}
+
+	affectedRows, err := res.RowsAffected()
+	if affectedRows == 0 || err != nil {
+		return srv.ErrInvalidID
+	}
+
+	return nil
+}
